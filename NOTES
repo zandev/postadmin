@@ -1,0 +1,19 @@
+POSTADMIN: A tool for postfix's workaround.org configuration CLI management
+
+Requirements:
+
+Managing 
+- domains: add, delete
+- users, alias: add, delete, update
+
+CLI examples:
+
+postadm add alias newalias@otherdomain.tld target@domain.com	# Add newalias@otherdomain.tld as an alias for target@domain.com
+postadm delete domain domaintodelete.fr				# Delete domain
+postadm add email -p"è789hsgj_Tg" -q 20M -e me@example.com	# Create email me@example.com with plain password è789hsgj_Tg and a quota of 20MB 
+postadm add email me@example.com "è789hsgj_Tg" 1G		# Create email me@example.com with plain password è789hsgj_Tg and a quota of 1GB
+postadm delete email me@example.com				# Delete email me@example.com
+postadm suspend email me@example.com 3d				# Suspend email me@example.com for 3 days
+
+SYNOPSIS
+  postadm [action] [type] [options]
