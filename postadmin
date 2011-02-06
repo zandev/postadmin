@@ -194,17 +194,17 @@ For more specific help, type:
     show_help
     exit 1
   fi
-
   declare -r action="$1"
+  shift
 
   # command
-  if ! [[ "$2" =~ ^($commands)$ ]]; then
-      echo "Unknow command $2"
+  if ! [[ "$1" =~ ^($commands)$ ]]; then
+      echo "Unknow command $1"
       show_help
       exit 1
   fi
-
-  declare -r command="$2"
+  declare -r command="$1"
+  shift
 
 ##
 ###
@@ -214,7 +214,7 @@ For more specific help, type:
 ###
 ## Main
 
-  "$command" "$action" "$3"
+  "$command" "$action" $@
 
 ##
 ###
