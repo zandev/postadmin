@@ -27,11 +27,12 @@ For more specific help, type:
         echo -n '   '
         echo "$line"
       done < <(echo "$@")
+      exit 1
     }
 
     require_var() {
       local var="$1"
-      if [ -z ${!var} ]; then
+      if [ -z "${!var}" ]; then
         echo -n "$var is not declared: "
         [ ! -z "$2" ] && echo "$2"
         exit 1
@@ -45,13 +46,18 @@ For more specific help, type:
 
 
     # Mysql queries
+    mysql_query() {
+      echo mysql -u"$mysql_user" -p"$mysql_passwd" -h"$mysql_host" --batch -e "USE ${mysql_database}; $@";
+    }
   
     domain_id() {
-      $mysql "USE ${mysql_database}; SELECT id FROM virtual_domains WHERE name = '$1';"
+      local token=%domain%
+      mysql_query "${domain_id_query//$token/$1};"
     }
 
     email_id() {
-      $mysql "USE ${mysql_database}; SELECT id FROM virtual_users WHERE email = '$1';"
+      local token=%email%
+      mysql_query "${email_id_query//$token/$1};"
     }
 
   ##
@@ -65,16 +71,20 @@ For more specific help, type:
     domain() {
       add() {
         if ask_help $1; then
-          show_usage "$script_name add domain [name] [options]
-                      options:
-                      -q    quota
-                      -n    number of accounts"
-          exit 1
+          show_usage \
+            "$script_name add domain [name] [options]
+            options:
+            -q    quota
+            -n    number of accounts"
         fi
         echo "add"
       }
       show() {
-        echo "show"
+        if ask_help $1; then
+          show_usage "$script_name show domain [name]"
+        fi
+        domain_id dummy.tld
+        echo show
       }
       delete() {
         echo "delete"
@@ -147,27 +157,29 @@ For more specific help, type:
 
   # Environment variables 
   declare -r POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
-  
-  . "$POSTADM_CONF"
-
-  # Script variables
-  require_var 'mysql_passwd' "in $POSTADM_CONF"
-
-  declare -r mysql_user="${mysql_user:-mailadmin}"
-  declare -r mysql_host="${mysql_host:-localhost}"
-  declare -r mysql_database="${mysql_database:-mailserver}"
-
-  declare -r vmail_home="${vmail_home:-/var/vmail}"
-
-  declare -r user_name_min_length="${user_name_min_length:-1}"
-  declare -r user_name_max_length="${user_name_max_length:-23}"
-  declare -r password_min_length="${password_min_length:-6}"
-
   declare -r actions="add|show|delete|update|suspend"
   declare -r commands="domain|email|alias"
 
-  declare -r mysql="mysql -u${mysql_user} -p${mysql_passwd} -h${mysql_host} -ss -e"
+  # Configuration variables
+  mysql_user=mailadmin
+  mysql_host=127.0.0.1
+  mysql_database=mailserver
+  vmail_home=/var/vmail
+  user_name_min_length=1
+  user_name_max_length=23
+  password_min_length=6
   
+
+  # Queries
+  domain_id_query="SELECT id FROM virtual_domains WHERE name = '%domain%'"
+  user_id_query="SELECT id FROM virtual_users WHERE email = '%email%'"
+
+  # sourcing configuration file
+  . "$POSTADM_CONF"
+
+  # Required variables (must be defined in $POSTADMIN_CONF or given as environment variables
+  require_var 'mysql_passwd' "in $POSTADM_CONF"
+
 ##
 ###
 
