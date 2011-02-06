@@ -153,18 +153,26 @@ For more specific help, type:
 ###
 ## Variables
  
-  declare -r script_name=$(basename $0)
+  readonly script_name=$(basename $0)
 
-  # Environment variables 
-  declare -r POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
-  declare -r actions="add|show|delete|update|suspend"
-  declare -r commands="domain|email|alias"
+  # Constants
+  readonly POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
+  readonly actions="add|show|delete|update|suspend"
+  readonly commands="domain|email|alias"
+
 
   # Configuration variables
+  vmail_home=/var/vmail
+
   mysql_user=mailadmin
   mysql_host=127.0.0.1
   mysql_database=mailserver
-  vmail_home=/var/vmail
+
+  local_part_regex="^([0-9a-z\.-]{${MINMAIL},${MAXMAIL}})$"
+  passwd_regex="^.{${MINPW},}$"
+  domain_regex="^[a-z0-9\.\-]+$"
+  email_regex="^[a-z@0-9\.\-]+$"
+
   user_name_min_length=1
   user_name_max_length=23
   password_min_length=6
@@ -194,7 +202,7 @@ For more specific help, type:
     show_help
     exit 1
   fi
-  declare -r action="$1"
+  readonly action="$1"
   shift
 
   # command
@@ -203,7 +211,7 @@ For more specific help, type:
       show_help
       exit 1
   fi
-  declare -r command="$1"
+  readonly command="$1"
   shift
 
 ##
