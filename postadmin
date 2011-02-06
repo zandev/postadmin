@@ -10,19 +10,38 @@
 
     show_help() {
       echo "
-Usage: $0 [actions] [commands] [options] args...
-       $0 [$actions] [$commands] [options] args...
+USAGE 
+    $script_name [action] [command] [options] args...
+WHERE
+    action is one  of: $actions
+    command is one of: $commands
+
+For more specific help, type:
+    $script_name [action] [command] --help
 "
     }
 
+    show_usage() {
+      echo USAGE
+      while read line; do
+        echo -n '   '
+        echo "$line"
+      done < <(echo "$@")
+    }
+
     require_var() {
-      var="$1"
+      local var="$1"
       if [ -z ${!var} ]; then
         echo -n "$var is not declared: "
         [ ! -z "$2" ] && echo "$2"
         exit 1
       fi
     }
+
+    ask_help() {
+      [[ "$1" == '--help' ]]
+      return "$?"
+    } 
 
 
     # Mysql queries
@@ -45,6 +64,13 @@ Usage: $0 [actions] [commands] [options] args...
 
     domain() {
       add() {
+        if ask_help $1; then
+          show_usage "$script_name add domain [name] [options]
+                      options:
+                      -q    quota
+                      -n    number of accounts"
+          exit 1
+        fi
         echo "add"
       }
       show() {
@@ -61,7 +87,7 @@ Usage: $0 [actions] [commands] [options] args...
         echo "Unimplemented"
         show_help
       }
-      "$1"
+      "$1" "$2"
     }
 
     email() {
@@ -117,6 +143,8 @@ Usage: $0 [actions] [commands] [options] args...
 ###
 ## Variables
  
+  declare -r script_name=$(basename $0)
+
   # Environment variables 
   declare -r POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
   
@@ -174,7 +202,7 @@ Usage: $0 [actions] [commands] [options] args...
 ###
 ## Main
 
-  "$command" "$action"
+  "$command" "$action" "$3"
 
 ##
 ###
