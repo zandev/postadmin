@@ -1,12 +1,23 @@
 #!/bin/bash
 
 
-
 ###
 ## Functions
 
   ###
   ## Helpers
+
+    log_debug() {
+      if $debug; then
+        echo "$@"
+      fi
+    }
+
+    log_verbose() {
+      if $verbose; then
+        echo "$@"
+      fi
+    }
 
     show_help() {
       echo "
@@ -44,20 +55,33 @@ For more specific help, type:
       return "$?"
     } 
 
+    substitute_tokens() {
+      local string="$1"; shift
+      local vars="$@"
+      for var in $vars; do
+        local token=%$var%
+        local value=${!var}
+        string=${string//$token/$value}
+      done
+      echo "$string"
+    }    
 
     # Mysql queries
-    mysql_query() {
-      echo mysql -u"$mysql_user" -p"$mysql_passwd" -h"$mysql_host" --batch -e "USE ${mysql_database}; $@";
+    db_query() {
+      query="$@"
+      local cmd=$(substitute_tokens "$sql_cmd" "$config_vars query")
+      echo query=$query
+      echo cmd=$cmd
     }
   
     domain_id() {
       local token=%domain%
-      mysql_query "${domain_id_query//$token/$1};"
+      db_query "${domain_id_query//$token/$1};"
     }
 
-    email_id() {
+    user_id() {
       local token=%email%
-      mysql_query "${email_id_query//$token/$1};"
+      db_query "${user_id_query//$token/$1};"
     }
 
   ##
@@ -77,7 +101,7 @@ For more specific help, type:
             -q    quota
             -n    number of accounts"
         fi
-        echo "add"
+        user_id me@truc.fr
       }
       show() {
         if ask_help $1; then
@@ -149,7 +173,6 @@ For more specific help, type:
 ###
 
 
-
 ###
 ## Variables
  
@@ -170,12 +193,17 @@ For more specific help, type:
   ##CONFIG VARS -- Meta programming, do not delete
   vmail_home=/var/vmail
 
-  mysql_user=mailadmin
-  mysql_host=127.0.0.1
-  mysql_database=mailserver
+  sql_cmd='mysql -u"%sql_user%" -p"%sql_passwd%" -h"%sql_host%" --batch -e "USE %sql_database%; %query%"'
+  sql_user=mailadmin
+  sql_host=127.0.0.1
+  sql_database=mailserver
+  sql_passwd="sure-this-is-not-a-password"
 
-  local_part_regex="^([0-9a-z\.-]{${MINMAIL},${MAXMAIL}})$"
-  passwd_regex="^.{${MINPW},}$"
+  local_part_min_length=2
+  local_part_max_length=23
+  local_part_regex="^([0-9a-z\.-]{%local_part_min_length%,%local_part_max_length%})$"
+  passwd_min_length=6
+  passwd_regex="^.{%passwd_min_length%,}$"
   domain_regex="^[a-z0-9\.\-]+$"
   email_regex="^[a-z@0-9\.\-]+$"
 
@@ -193,13 +221,17 @@ For more specific help, type:
   # sourcing configuration file
   . "$POSTADM_CONF"
 
-  readonly_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name | grep '##END CONFIG VARS' -B 100 | egrep '^\s*[a-z0-9_]+=' | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
-  for var in $readonly_vars; do
+  readonly config_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name\
+                         | grep '##END CONFIG VARS' -B 100\
+                         | egrep '^\s*[a-z0-9_]+='\
+                         | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
+
+  for var in $config_vars; do
     readonly $var
   done  
-  
+
   # Required variables (must be defined in $POSTADMIN_CONF or given as environment variables
-  require_var 'mysql_passwd' "in $POSTADM_CONF"
+  require_var 'sql_passwd' "in $POSTADM_CONF"
 
 ##
 ###
@@ -227,6 +259,15 @@ For more specific help, type:
   readonly command="$1"
   shift
 
+  debug=false
+  verbose=false
+  for arg in $@; do
+    case "$arg" in
+      '--debug') readonly debug=true;;
+      '--verbose') readonly verbose=true;;
+    esac
+  done
+
 ##
 ###
 
@@ -234,6 +275,26 @@ For more specific help, type:
 
 ###
 ## Main
+
+  if $debug; then
+    echo ========================
+    echo DEBUGGING INFORMATIONS
+    echo
+    echo -- Configuration variables
+    for var in $config_vars; do
+      echo $var=${!var}
+    done
+    echo
+    echo -- Arguments
+    echo command=$command
+    echo action=$action
+    echo
+    echo -- Additional parameters
+    for arg in $@; do
+      echo $arg
+    done 
+    echo ========================
+  fi
 
   "$command" "$action" $@
 
