@@ -153,6 +153,10 @@ For more specific help, type:
 ###
 ## Variables
  
+  pushd $(dirname $(readlink -f "$BASH_SOURCE")) > /dev/null
+  script_dir="$PWD"
+  popd > /dev/null
+
   readonly script_name=$(basename $0)
 
   # Constants
@@ -162,6 +166,8 @@ For more specific help, type:
 
 
   # Configuration variables
+  
+  ##CONFIG VARS -- Meta programming, do not delete
   vmail_home=/var/vmail
 
   mysql_user=mailadmin
@@ -182,9 +188,16 @@ For more specific help, type:
   domain_id_query="SELECT id FROM virtual_domains WHERE name = '%domain%'"
   user_id_query="SELECT id FROM virtual_users WHERE email = '%email%'"
 
+  ##END CONFIG VARS
+
   # sourcing configuration file
   . "$POSTADM_CONF"
 
+  readonly_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name | grep '##END CONFIG VARS' -B 100 | egrep '^\s*[a-z0-9_]+=' | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
+  for var in $readonly_vars; do
+    readonly $var
+  done  
+  
   # Required variables (must be defined in $POSTADMIN_CONF or given as environment variables
   require_var 'mysql_passwd' "in $POSTADM_CONF"
 
