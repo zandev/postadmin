@@ -122,7 +122,8 @@ For more specific help, type:
 
       add() {
         if ask_help $@; then
-          show_usage "$script_name add domain [name]"
+          show_usage "$script_name add domain [name]
+                      Add a new domain"
         fi
         domain_id=$(domain_id "$domain")
         if [ ! -z "$domain_id" ]; then
@@ -134,9 +135,28 @@ For more specific help, type:
 
       show() {
         if ask_help $@; then
-          show_usage "$script_name show domain [name]"
+          show_usage "$script_name show domain [name]
+                      Show a domain entry
+                      If \`*\` is passed as argument \`name\`, list all domains in database"
         fi
-        echo $(db_query "$list_emails_query")
+        local result
+        if [ "$domain"='*' ]; then
+          result=$(db_query "$list_domains_query")
+          echo "$result"
+        else
+          result=$(db_query "${show_domain_query//%domain%/$domain}")
+          echo "$result"
+        fi
+      }
+
+      list() {
+        if ask_help $@; then
+          show_usage "$script_name list domain [name]
+                      List emails for this domain"
+        fi
+        local domain_id=$(domain_id "$domain")
+        local result=$(db_query "${list_emails_query//%domain_id%/$domain_id}")
+        echo "$result"
       }
 
       delete() {
@@ -150,17 +170,17 @@ For more specific help, type:
         fi
         db_query "${delete_domain_query//%domain_id%/$domain_id}"
       }
-     
+ 
       # validate args
       domain="$1" 
-      
+ 
       # Main
       case "$action" in
-        add|show|delete)
+        add|show|list|delete)
           "$action" $@
         ;;
         *)
-          echo unexpected action "$action"
+          echo Unexpected action "$action"
           show_help
           exit 1
         ;;
@@ -227,7 +247,7 @@ For more specific help, type:
 
   # Constants
   readonly POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
-  readonly actions="add|show|delete|update|suspend"
+  readonly actions="add|show|list|delete|update|suspend"
   readonly commands="domain|email|alias"
 
 
@@ -275,12 +295,14 @@ For more specific help, type:
       SELECT %user_id_column% 
       FROM %user_table% 
       WHERE %user_email_column% = '%email%'"
-  list_domains_query="
-      SELECT %domain_name_column% 
-      FROM %domain_table%"
   add_domain_query="
       INSERT INTO %domain_table% (%domain_name_column%) 
       VALUES ('%domain%')"
+  show_domain_query="
+      SELECT name FROM %virtual_domains%"
+  list_domains_query="
+      SELECT %domain_name_column% 
+      FROM %domain_table%"
   delete_domain_query="
       DELETE FROM %domain_table% WHERE %domain_id_column% = '%domain_id%'"
   list_emails_query="
