@@ -225,6 +225,12 @@ For more specific help, type:
                       Add email user@domain"
           exit 1
         fi
+        
+        user_id=$(user_id "$email")
+        if [ ! -z "$user_id" ]; then
+          echo email "$email" already exist in database
+          exit 1
+        fi
 
         validate_regex "$1" "$passwd_regex" 'password'
         password="$1"
