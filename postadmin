@@ -1,4 +1,4 @@
-#!/bin/bash -u
+#!/bin/bash
 
 # Copyright (C) 2010 Stéphane Robert Richard.
 # All rights reserved.
@@ -36,7 +36,7 @@
 
     log_debug() {
       if $debug; then
-        echo "$@"
+        echo "$@" >> $script_dir/tmp/debug.log
       fi
     }
 
@@ -71,8 +71,8 @@ For more specific help, type:
     require_var() {
       local var="$1"
       if [ -z "${!var}" ]; then
-        echo -n "$var is not declared: "
-        [ ! -z "$2" ] && echo "$2"
+        log_debug "$var is not declared: "
+        echo "$2"
         exit 1
       fi
     }
@@ -91,7 +91,11 @@ For more specific help, type:
         string=${string//$token/$value}
       done
       echo "$string"
-    }    
+    }
+
+    domain_name() {
+      echo "$1" | awk -F@ '{print $NF}'
+    }
 
     # Sql queries
     db_query() {
@@ -172,7 +176,7 @@ For more specific help, type:
       }
  
       # validate args
-      domain="$1" 
+      domain="$1"
  
       # Main
       case "$action" in
@@ -188,9 +192,32 @@ For more specific help, type:
     }
 
     email() {
+
       add() {
-        echo "add"
+        if ask_help $@; then
+          show_usage "$script_name add email [user@domain] [password]
+                      Add email user@domain"
+        fi
+
+        if [ -z "$1" ];then
+          echo "No password provided"
+          show_usage "$script_name add email [user@domain] [password]
+                      Add email user@domain"
+          exit 1
+        fi
+
+        password="$1"
+        domain=$(domain_name "$email")
+        domain_id=$(domain_id "$domain")
+
+        if [ -z "$domain_id" ]; then
+          echo domain "$domain" do not exist in database
+          exit 1
+        fi
+        local query=$(substitute_tokens "$add_email_query" email domain_id password)
+        db_query "$query"
       }
+
       show() {
         echo "show"
       }
@@ -205,7 +232,21 @@ For more specific help, type:
         echo "Unimplemented"
         show_help
       }
-      "$1"
+      
+      # validate args
+      email="$1"; shift
+ 
+      # Main
+      case "$action" in
+        add|show|delete)
+          "$action" "$@"
+        ;;
+        *)
+          echo Unexpected action "$action"
+          show_help
+          exit 1
+        ;;
+      esac
     }
 
     alias() {
@@ -226,7 +267,7 @@ For more specific help, type:
         echo "Unimplemented"
         show_help
       }
-      "$1"
+      "$action"
     }
     
   ##
@@ -269,6 +310,7 @@ For more specific help, type:
 
   require_var "postadmin_conf" "No config file can be found in $config_dirs"
 
+
   # Configuration variables
   
   ##CONFIG VARS -- Meta programming, do not delete
@@ -301,10 +343,13 @@ For more specific help, type:
   user_id_column=id
   user_email_column=email
   user_domain_id_column=domain_id
+  user_password_column=password
   alias_table=virtual_aliases
   alias_id_column=id
   alias_source_column=source
   alias_destination_column=destination
+  
+  # domain
   domain_id_query="
       SELECT %domain_id_column% 
       FROM %domain_table% 
@@ -327,6 +372,11 @@ For more specific help, type:
       SELECT %user_table%.%user_email_column% 
       FROM %user_table% 
       WHERE %user_domain_id_column% = %domain_id%"
+
+  # email
+  add_email_query="
+      INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
+      VALUES ('%domain_id%', '%email%', MD5('%password%'))"
 
   ##END CONFIG VARS
 
