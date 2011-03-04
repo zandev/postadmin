@@ -216,13 +216,7 @@ For more specific help, type:
 
         validate_regex "$1" "$passwd_regex" 'password'
         password="$1"
-        domain=$(domain_name "$email")
-        domain_id=$(domain_id "$domain")
 
-        if [ -z "$domain_id" ]; then
-          echo domain "$domain" do not exist in database
-          exit 1
-        fi
         local query=$(substitute_tokens "$add_email_query" email domain_id password)
         db_query "$query"
       }
@@ -230,13 +224,25 @@ For more specific help, type:
       show() {
         echo "show"
       }
+
       delete() {
-        echo "delete"
+        if ask_help $@; then
+          show_usage "$script_name delete email [user@domain]
+                      Delete email user@domain"
+        fi
+        user_id=$(user_id "$email")
+        if [ -z "$user_id" ]; then
+          echo email "$email" do not exist in database
+          exit 1
+        fi
+        db_query "${delete_user_query//%user_id%/$user_id}"
       }
+
       update() {
         echo "Unimplemented"
         show_help
       }
+
       suspend() {
         echo "Unimplemented"
         show_help
@@ -245,6 +251,15 @@ For more specific help, type:
       # validate args
       validate_regex "$1" "$email_regex" 'email'
       email="$1"; shift
+
+      # retrieve domain id
+      domain=$(domain_name "$email")
+      domain_id=$(domain_id "$domain")
+
+      if [ -z "$domain_id" ]; then
+        echo domain "$domain" do not exist in database
+        exit 1
+      fi
  
       # Main
       case "$action" in
@@ -365,10 +380,6 @@ For more specific help, type:
       SELECT %domain_id_column% 
       FROM %domain_table% 
       WHERE %domain_name_column% = '%domain%'"
-  user_id_query="
-      SELECT %user_id_column% 
-      FROM %user_table% 
-      WHERE %user_email_column% = '%email%'"
   add_domain_query="
       INSERT INTO %domain_table% (%domain_name_column%) 
       VALUES ('%domain%')"
@@ -379,15 +390,21 @@ For more specific help, type:
       FROM %domain_table%"
   delete_domain_query="
       DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%"
+
+  # email
+  user_id_query="
+      SELECT %user_id_column% 
+      FROM %user_table% 
+      WHERE %user_email_column% = '%email%'"
+  add_email_query="
+      INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
+      VALUES ('%domain_id%', '%email%', MD5('%password%'))"
   list_emails_query="
       SELECT %user_table%.%user_email_column% 
       FROM %user_table% 
       WHERE %user_domain_id_column% = %domain_id%"
-
-  # email
-  add_email_query="
-      INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
-      VALUES ('%domain_id%', '%email%', MD5('%password%'))"
+  delete_user_query="
+      DELETE FROM %user_table% WHERE %user_id_column% = %user_id%"
 
   ##END CONFIG VARS
 
