@@ -293,19 +293,37 @@ For more specific help, type:
     }
 
     alias() {
+
       add() {
-        echo "add"
+        if ask_help $@; then
+          show_usage "$script_name add alias [source_email] [destination_email]
+                      Add an alias from [source_email] to [destination_email]"
+        fi
+
+        alias_id=$(alias_id "$source_email" "$destination_email")
+
+        if [ ! -z "$alias_id" ]; then
+          echo "alias '$source_email' -> '$destination_email' already exist in database"
+          exit 1
+        fi
+
+        local query=$(substitute_tokens "$add_alias_query" source_email destination_email domain_id)
+        db_query "$query"
       }
+
       show() {
         echo "show"
       }
+
       delete() {
         echo "delete"
       }
+
       update() {
         echo "Unimplemented"
         show_help
       }
+
       suspend() {
         echo "Unimplemented"
         show_help
@@ -317,6 +335,15 @@ For more specific help, type:
 
       validate_regex "$1" "$email_regex" 'destination email'
       destination_email="$1"; shift
+      
+      # retrieve domain id
+      domain=$(domain_name "$source_email")
+      domain_id=$(domain_id "$domain")
+
+      if [ -z "$domain_id" ]; then
+        echo domain "$domain" do not exist in database
+        exit 1
+      fi
 
       # Main
       case "$action" in
