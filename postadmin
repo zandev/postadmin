@@ -246,10 +246,28 @@ For more specific help, type:
   readonly script_name=$(basename $0)
 
   # Constants
-  readonly POSTADM_CONF="${POSTADM_CONF:-/usr/local/etc/postadmin/postadmin.conf}"
   readonly actions="add|show|list|delete|update|suspend"
   readonly commands="domain|email|alias"
 
+  # load config file
+  config_dirs="
+    .
+    /etc
+    /usr/local/etc
+    /opt/etc"
+
+  postadmin_conf=  
+
+  for d in $config_dirs; do
+    for localdir in $d $d/postadmin; do
+      if [ -d "$localdir" ] && [ -f "$localdir/postadmin.conf" ]; then
+        readonly postadmin_conf="$localdir/postadmin.conf"
+        break
+      fi
+    done
+  done
+
+  require_var "postadmin_conf" "No config file can be found in $config_dirs"
 
   # Configuration variables
   
@@ -304,7 +322,7 @@ For more specific help, type:
       SELECT %domain_name_column% 
       FROM %domain_table%"
   delete_domain_query="
-      DELETE FROM %domain_table% WHERE %domain_id_column% = '%domain_id%'"
+      DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%"
   list_emails_query="
       SELECT %user_table%.%user_email_column% 
       FROM %user_table% 
@@ -313,7 +331,7 @@ For more specific help, type:
   ##END CONFIG VARS
 
   # sourcing configuration file
-  . "$POSTADM_CONF"
+  . "$postadmin_conf"
 
   readonly config_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name\
                          | grep '##END CONFIG VARS' -B 100\
@@ -331,7 +349,13 @@ For more specific help, type:
 
 ###
 ## Parsing arguments
-
+  
+  if [ $# -lt 2 ]; then
+    echo "Wrong argument count"
+    show_help
+    exit 1
+  fi
+  
   # action
   if ! [[ "$1" =~ ^($actions)$ ]]; then
     echo "Unknow action $1"
