@@ -77,6 +77,13 @@ For more specific help, type:
       fi
     }
 
+    validate_regex() {
+      if ! [[ "$1" =~ $2 ]]; then 
+        echo "$3 '$1' do not match against the regular expression $2"
+        exit 1
+      fi
+    }
+
     ask_help() {
       [[ "$1" == '--help' ]]
       return "$?"
@@ -176,12 +183,13 @@ For more specific help, type:
       }
  
       # validate args
-      domain="$1"
- 
+      validate_regex "$1" "$domain_regex" 'domain'
+      domain="$1"; shift
+
       # Main
       case "$action" in
         add|show|list|delete)
-          "$action" $@
+          "$action" "$@"
         ;;
         *)
           echo Unexpected action "$action"
@@ -206,6 +214,7 @@ For more specific help, type:
           exit 1
         fi
 
+        validate_regex "$1" "$passwd_regex" 'password'
         password="$1"
         domain=$(domain_name "$email")
         domain_id=$(domain_id "$domain")
@@ -234,6 +243,7 @@ For more specific help, type:
       }
       
       # validate args
+      validate_regex "$1" "$email_regex" 'email'
       email="$1"; shift
  
       # Main
@@ -316,6 +326,7 @@ For more specific help, type:
   ##CONFIG VARS -- Meta programming, do not delete
   vmail_home=/var/vmail
 
+
   sql_cmd='mysql -u"%sql_user%" -p"%sql_passwd%" -h"%sql_host%" -s --batch -e "USE %sql_database%; %query%"'
   sql_user=mailadmin
   sql_host=127.0.0.1
@@ -326,9 +337,9 @@ For more specific help, type:
   local_part_max_length=23
   local_part_regex="^([0-9a-z\.-]{%local_part_min_length%,%local_part_max_length%})$"
   passwd_min_length=6
-  passwd_regex="^.{%passwd_min_length%,}$"
-  domain_regex="^[a-z0-9\.\-]+$"
-  email_regex="^[a-z@0-9\.\-]+$"
+  passwd_regex=".{%passwd_min_length%,}"
+  domain_regex='[a-z0-9.-]+\.[a-z]{2,4}'
+  email_regex="[a-z0-9._%+-]+@%domain_regex%"
 
   user_name_min_length=1
   user_name_max_length=23
@@ -387,10 +398,15 @@ For more specific help, type:
                          | grep '##END CONFIG VARS' -B 100\
                          | egrep '^\s*[a-z0-9_]+='\
                          | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
-
+  
   for var in $config_vars; do
-    readonly $var
-  done  
+    if [[ "$var" =~ _regex ]]; then
+      declare -r $var=$(substitute_tokens "${!var}" "$config_vars")
+    else
+      readonly $var
+    fi
+  done
+
 
 ##
 ###
