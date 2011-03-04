@@ -316,7 +316,19 @@ For more specific help, type:
       }
 
       delete() {
-        echo "delete"
+        if ask_help $@; then
+          show_usage "$script_name delete alias [source_email] [destination_email]
+                      Delete alias from [source_email] to [destination_email]"
+        fi
+
+        alias_id=$(alias_id "$source_email" "$destination_email")
+
+        if [ -z "$alias_id" ]; then
+          echo "alias '$source_email' -> '$destination_email' does not exist in database"
+          exit 1
+        fi
+
+        db_query "${delete_alias_query//%alias_id%/$alias_id}"
       }
 
       update() {
