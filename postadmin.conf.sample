@@ -1,1 +1,43 @@
-
+#vmail_home=/var/vmail
+#debug_file=/home/stephane/postadmin.debug.log
+#sql_cmd=mysql -u"%sql_user%" -p"%sql_passwd%" -h"%sql_host%" -s --batch -e "USE %sql_database%; %query%"
+#sql_user=mailadmin
+#sql_host=127.0.0.1
+#sql_database=mailserver
+#sql_passwd=mailadmin2011
+#local_part_min_length=2
+#local_part_max_length=23
+#local_part_regex=^([0-9a-z\.-]{2,23})$
+#passwd_min_length=6
+#passwd_regex=.{6,}
+#domain_regex=[a-z0-9.-]+\.[a-z]{2,4}
+#email_regex=[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}
+#user_name_min_length=1
+#user_name_max_length=23
+#password_min_length=6
+#domain_table=virtual_domains
+#domain_id_column=id
+#domain_name_column=name
+#user_table=virtual_users
+#user_id_column=id
+#user_email_column=email
+#user_domain_id_column=domain_id
+#user_password_column=password
+#alias_table=virtual_aliases
+#alias_id_column=id
+#alias_domain_id_column=domain_id
+#alias_source_column=source
+#alias_destination_column=destination
+#domain_id_query= SELECT %domain_id_column% FROM %domain_table% WHERE %domain_name_column% = '%domain%'
+#add_domain_query= INSERT INTO %domain_table% (%domain_name_column%) VALUES ('%domain%')
+#show_domain_query= SELECT name FROM %virtual_domains%
+#list_domains_query= SELECT %domain_name_column% FROM %domain_table%
+#delete_domain_query= DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%
+#user_id_query= SELECT %user_id_column% FROM %user_table% WHERE %user_email_column% = '%email%'
+#show_email_query= SELECT %user_email_column% FROM %user_table% WHERE %user_email_column% = '%email%'
+#add_email_query= INSERT INTO %user_table% (%user_domain_id_column%, %user_email_column%, %user_password_column%) VALUES ('%domain_id%', '%email%', MD5('%password%')); INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%email%', '%email%')
+#list_emails_query= SELECT %user_table%.%user_email_column% FROM %user_table% WHERE %user_domain_id_column% = %domain_id%
+#delete_user_query= DELETE FROM %user_table% WHERE %user_id_column% = %user_id%; DELETE FROM %alias_table% WHERE %alias_source_column% = '%email%'
+#alias_id_query= SELECT %alias_id_column% FROM %alias_table% WHERE %alias_source_column% = '%source_email%' AND %alias_destination_column% = '%destination_email%'
+#add_alias_query= INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%source_email%', '%destination_email%')
+#delete_alias_query= DELETE FROM %alias_table% WHERE %alias_id_column% = %alias_id%

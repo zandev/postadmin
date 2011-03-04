@@ -541,12 +541,24 @@ For more specific help, type:
 ###
 ## Parsing arguments
   
+  # generate config file command
+  case "$1" in
+    'generate-config')
+      for var in $config_vars; do
+        echo -n '#'
+        echo $var=${!var}
+      done
+      exit 0
+    ;;
+  esac
+
   if [ $# -lt 2 ]; then
     echo "Wrong argument count"
     show_help
     exit 1
   fi
-  
+
+
   # action
   if ! [[ "$1" =~ ^($actions)$ ]]; then
     echo "Unknow action $1"
