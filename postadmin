@@ -112,13 +112,18 @@ For more specific help, type:
     }
   
     domain_id() {
-      local token=%domain%
-      db_query "${domain_id_query//$token/$1};"
+      db_query "${domain_id_query//%domain%/$1};"
     }
 
     user_id() {
-      local token=%email%
-      db_query "${user_id_query//$token/$1};"
+      db_query "${user_id_query//%email%/$1};"
+    }
+
+    alias_id() {
+      source_email="$1"
+      destination_email="$2"
+      local alias_query=$(substitute_tokens "$alias_id_query" source_email destination_email)
+      echo $(db_query "$alias_query")
     }
 
   ##
@@ -217,8 +222,8 @@ For more specific help, type:
         validate_regex "$1" "$passwd_regex" 'password'
         password="$1"
 
-        local query=$(substitute_tokens "$add_email_query" email domain_id password)
-        db_query "$query"
+        local email_query=$(substitute_tokens "$add_email_query" email domain_id password)
+        db_query "$email_query"
       }
 
       show() {
@@ -235,7 +240,8 @@ For more specific help, type:
           echo email "$email" do not exist in database
           exit 1
         fi
-        db_query "${delete_user_query//%user_id%/$user_id}"
+        local email_query=$(substitute_tokens "$delete_user_query" email user_id)
+        db_query "$email_query"
       }
 
       update() {
@@ -372,6 +378,7 @@ For more specific help, type:
   user_password_column=password
   alias_table=virtual_aliases
   alias_id_column=id
+  alias_domain_id_column=domain_id
   alias_source_column=source
   alias_destination_column=destination
   
@@ -389,7 +396,8 @@ For more specific help, type:
       SELECT %domain_name_column% 
       FROM %domain_table%"
   delete_domain_query="
-      DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%"
+      DELETE FROM %domain_table% 
+      WHERE %domain_id_column% = %domain_id%"
 
   # email
   user_id_query="
@@ -398,13 +406,31 @@ For more specific help, type:
       WHERE %user_email_column% = '%email%'"
   add_email_query="
       INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
-      VALUES ('%domain_id%', '%email%', MD5('%password%'))"
+      VALUES ('%domain_id%', '%email%', MD5('%password%'));
+      INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) 
+      VALUES (%domain_id%, '%email%', '%email%')"
   list_emails_query="
       SELECT %user_table%.%user_email_column% 
       FROM %user_table% 
       WHERE %user_domain_id_column% = %domain_id%"
   delete_user_query="
-      DELETE FROM %user_table% WHERE %user_id_column% = %user_id%"
+      DELETE FROM %user_table%
+      WHERE %user_id_column% = %user_id%;
+      DELETE FROM %alias_table%
+      WHERE %alias_source_column% = '%email%'"
+
+  # alias
+  alias_id_query="
+      SELECT %alias_id_column% 
+      FROM %alias_table% 
+      WHERE %alias_source_column% = '%source_email%'
+      AND %alias_destination_column% = '%destination_email%'"
+  add_alias_query="
+      INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) 
+      VALUES (%domain_id%, '%source_email%', '%destination_email%')"
+  delete_alias_query="
+      DELETE FROM %alias_table% 
+      WHERE %alias_id_column% = %alias_id%"
 
   ##END CONFIG VARS
 
