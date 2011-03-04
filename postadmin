@@ -36,7 +36,7 @@
 
     log_debug() {
       if $debug; then
-        echo "$@" >> $script_dir/tmp/debug.log
+        echo "$@" >> "$debug_file"
       fi
     }
 
@@ -112,6 +112,9 @@ For more specific help, type:
       fi
       query=$(substitute_tokens "$@" "$config_vars")
       local cmd=$(substitute_tokens "$sql_cmd" "$config_vars query")
+
+      log_debug "$cmd" >> "$debug_file"
+
       eval $cmd
     }
   
@@ -415,7 +418,7 @@ For more specific help, type:
   
   ##CONFIG VARS -- Meta programming, do not delete
   vmail_home=/var/vmail
-
+  debug_file="$HOME/postadmin.debug.log"
 
   sql_cmd='mysql -u"%sql_user%" -p"%sql_passwd%" -h"%sql_host%" -s --batch -e "USE %sql_database%; %query%"'
   sql_user=mailadmin
@@ -574,23 +577,23 @@ For more specific help, type:
 ## Main
 
   if $debug; then
-    echo ========================
-    echo DEBUGGING INFORMATIONS
-    echo
-    echo -- Configuration variables
+    log_debug ========================
+    log_debug DEBUGGING INFORMATIONS
+    log_debug
+    log_debug -- Configuration variables
     for var in $config_vars; do
-      echo $var=${!var}
+      log_debug $var=${!var}
     done
-    echo
-    echo -- Arguments
-    echo command=$command
-    echo action=$action
-    echo
-    echo -- Additional parameters
+    log_debug
+    log_debug -- Arguments
+    log_debug command=$command
+    log_debug action=$action
+    log_debug
+    log_debug -- Additional parameters
     for arg in $@; do
-      echo $arg
+      log_debug $arg
     done 
-    echo ========================
+    log_debug ========================
   fi
 
   "$command" $@
