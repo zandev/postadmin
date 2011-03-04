@@ -106,6 +106,10 @@ For more specific help, type:
 
     # Sql queries
     db_query() {
+      if [ -z "$@" ]; then
+        echo query is empty
+        exit 1
+      fi
       query=$(substitute_tokens "$@" "$config_vars")
       local cmd=$(substitute_tokens "$sql_cmd" "$config_vars query")
       eval $cmd
@@ -227,7 +231,15 @@ For more specific help, type:
       }
 
       show() {
-        echo "show"
+        if ask_help $@; then
+          show_usage "$script_name show email [user@domain]
+                      Show email user@domain"
+        fi
+        local result=$(db_query "${show_email_query//%email%/$email}")
+        if [ -z "$result" ]; then
+          echo email "$email" does not exist in database
+        fi
+        echo "$result"
       }
 
       delete() {
@@ -298,7 +310,25 @@ For more specific help, type:
         echo "Unimplemented"
         show_help
       }
-      "$action"
+
+      # validate args
+      validate_regex "$1" "$email_regex" 'source email'
+      source_email="$1"; shift
+
+      validate_regex "$1" "$email_regex" 'destination email'
+      destination_email="$1"; shift
+
+      # Main
+      case "$action" in
+        add|show|delete)
+          "$action" "$@"
+        ;;
+        *)
+          echo Unexpected action "$action"
+          show_help
+          exit 1
+        ;;
+      esac
     }
     
   ##
@@ -403,6 +433,10 @@ For more specific help, type:
   user_id_query="
       SELECT %user_id_column% 
       FROM %user_table% 
+      WHERE %user_email_column% = '%email%'"
+  show_email_query="
+      SELECT %user_email_column%
+      FROM %user_table%
       WHERE %user_email_column% = '%email%'"
   add_email_query="
       INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
