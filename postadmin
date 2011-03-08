@@ -559,6 +559,10 @@ For more specific help, type:
       done
       exit 0
     ;;
+      '--help') 
+        show_help; 
+        exit 0
+    ;;
   esac
 
 
@@ -568,7 +572,6 @@ For more specific help, type:
     case "$arg" in
       '--debug') readonly debug=true;;
       '--verbose') readonly verbose=true;;
-      '--help') show_help; exit 0;;
     esac
   done
 

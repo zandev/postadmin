@@ -27,7 +27,7 @@ in
 
 ### Add an email
 
-    postadmin add email me@mydomain.tld
+    postadmin add email me@mydomain.tld plain_Password
 
 ### Add an alias
 
