@@ -194,9 +194,12 @@ For more specific help, type:
         db_query "${delete_domain_query//%domain_id%/$domain_id}"
       }
  
-      # validate args
-      validate_regex "$1" "$domain_regex" 'domain'
-      domain="$1"; shift
+      if ! ask_help "$1"; then
+
+        # validate args
+        validate_regex "$1" "$domain_regex" 'domain'
+        domain="$1"; shift
+      fi
 
       # Main
       case "$action" in
@@ -275,17 +278,20 @@ For more specific help, type:
         show_help
       }
       
-      # validate args
-      validate_regex "$1" "$email_regex" 'email'
-      email="$1"; shift
+      if ! ask_help "$1"; then
 
-      # retrieve domain id
-      domain=$(domain_name "$email")
-      domain_id=$(domain_id "$domain")
+        # validate args
+        validate_regex "$1" "$email_regex" 'email'
+        email="$1"; shift
 
-      if [ -z "$domain_id" ]; then
-        echo domain "$domain" do not exist in database
-        exit 1
+        # retrieve domain id
+        domain=$(domain_name "$email")
+        domain_id=$(domain_id "$domain")
+
+        if [ -z "$domain_id" ]; then
+          echo domain "$domain" do not exist in database
+          exit 1
+        fi
       fi
  
       # Main
@@ -350,20 +356,23 @@ For more specific help, type:
         show_help
       }
 
-      # validate args
-      validate_regex "$1" "$email_regex" 'source email'
-      source_email="$1"; shift
+      if ! ask_help "$1"; then
 
-      validate_regex "$1" "$email_regex" 'destination email'
-      destination_email="$1"; shift
-      
-      # retrieve domain id
-      domain=$(domain_name "$source_email")
-      domain_id=$(domain_id "$domain")
+        # validate args
+        validate_regex "$1" "$email_regex" 'source email'
+        source_email="$1"; shift
 
-      if [ -z "$domain_id" ]; then
-        echo domain "$domain" do not exist in database
-        exit 1
+        validate_regex "$1" "$email_regex" 'destination email'
+        destination_email="$1"; shift
+        
+        # retrieve domain id
+        domain=$(domain_name "$source_email")
+        domain_id=$(domain_id "$domain")
+
+        if [ -z "$domain_id" ]; then
+          echo domain "$domain" do not exist in database
+          exit 1
+        fi
       fi
 
       # Main
@@ -552,6 +561,17 @@ For more specific help, type:
     ;;
   esac
 
+
+  debug=false
+  verbose=false
+  for arg in $@; do
+    case "$arg" in
+      '--debug') readonly debug=true;;
+      '--verbose') readonly verbose=true;;
+      '--help') show_help; exit 0;;
+    esac
+  done
+
   if [ $# -lt 2 ]; then
     echo "Wrong argument count"
     show_help
@@ -576,15 +596,6 @@ For more specific help, type:
   fi
   readonly command="$1"
   shift
-
-  debug=false
-  verbose=false
-  for arg in $@; do
-    case "$arg" in
-      '--debug') readonly debug=true;;
-      '--verbose') readonly verbose=true;;
-    esac
-  done
 
 ##
 ###
