@@ -79,7 +79,7 @@ For more specific help, type:
 
     validate_regex() {
       if ! [[ "$1" =~ $2 ]]; then 
-        echo "$3 '$1' do not match against the regular expression $2"
+        echo "$3 '$1' does not match against the regular expression $2"
         exit 1
       fi
     }
@@ -128,7 +128,7 @@ For more specific help, type:
     # Sql queries
     db_query() {
       if [ -z "$@" ]; then
-        echo query is empty
+        echo "db_query: query is empty"
         exit 1
       fi
       query=$(substitute_tokens "$@" "$config_vars")
@@ -209,7 +209,7 @@ For more specific help, type:
         fi
         domain_id=$(domain_id "$domain")
         if [ -z "$domain_id" ]; then
-          echo domain "$domain" do not exist in database
+          echo domain "$domain" does not exist in database
           exit 1
         fi
         db_query "${delete_domain_query//%domain_id%/$domain_id}"
@@ -236,12 +236,8 @@ For more specific help, type:
     }
 
     email() {
-
-      add() {
-        if ask_help $@; then
-          show_usage "$script_name add email [user@domain] [password]
-                      Add email user@domain"
-        fi
+      
+      set_password() {
         
         encrypted=false
         while getopts ":e:p:" opt; do
@@ -272,11 +268,6 @@ For more specific help, type:
           exit 1
         fi
         
-        user_id=$(user_id "$email")
-        if [ ! -z "$user_id" ]; then
-          echo email "$email" already exist in database
-          exit 1
-        fi
 
         if ! $encrypted; then 
           validate_regex "$password" "$passwd_regex" 'password'
@@ -285,6 +276,22 @@ For more specific help, type:
         fi
 
         password=$(echo $password | sed 's/\$/\\$/g')
+      }
+
+
+      add() {
+        if ask_help $@; then
+          show_usage "$script_name add email [user@domain] [password]
+                      Add email user@domain"
+        fi
+
+        user_id=$(user_id "$email")
+        if [ ! -z "$user_id" ]; then
+          echo email "$email" already exist in database
+          exit 1
+        fi
+
+        set_password "$@"
 
         local email_query=$(substitute_tokens "$add_email_query" email domain_id password)
         db_query "$email_query"
@@ -309,23 +316,35 @@ For more specific help, type:
         fi
         user_id=$(user_id "$email")
         if [ -z "$user_id" ]; then
-          echo email "$email" do not exist in database
+          echo email "$email" does not exist in database
           exit 1
         fi
-        local email_query=$(substitute_tokens "$delete_user_query" email user_id)
+        local email_query=$(substitute_tokens "$delete_email_query" email user_id)
         db_query "$email_query"
       }
 
       update() {
-        echo "Unimplemented"
-        show_help
+        if ask_help $@; then
+          show_usage "$script_name update email [user@domain] -[p|e] [password]
+                      Update email user@domain
+                      Options:
+                      p: The password in plain text
+                      e: The password in encrypted form"
+          exit 1
+        fi
+
+        user_id=$(user_id "$email")
+        if [ -z "$user_id" ]; then
+          echo email "$email" does not exist in database
+          exit 1
+        fi
+
+        set_password "$@"
+
+        local email_query=$(substitute_tokens "$update_email_query" password user_id)
+        db_query "$email_query"
       }
 
-      suspend() {
-        echo "Unimplemented"
-        show_help
-      }
-      
       if ! ask_help "$1"; then
 
         # validate args
@@ -337,14 +356,14 @@ For more specific help, type:
         domain_id=$(domain_id "$domain")
 
         if [ -z "$domain_id" ]; then
-          echo domain "$domain" do not exist in database
+          echo domain "$domain" does not exist in database
           exit 1
         fi
       fi
  
       # Main
       case "$action" in
-        add|show|delete)
+        add|show|update|delete)
           "$action" "$@"
         ;;
         *)
@@ -394,16 +413,6 @@ For more specific help, type:
         db_query "${delete_alias_query//%alias_id%/$alias_id}"
       }
 
-      update() {
-        echo "Unimplemented"
-        show_help
-      }
-
-      suspend() {
-        echo "Unimplemented"
-        show_help
-      }
-
       if ! ask_help "$1"; then
 
         # validate args
@@ -418,7 +427,7 @@ For more specific help, type:
         domain_id=$(domain_id "$domain")
 
         if [ -z "$domain_id" ]; then
-          echo domain "$domain" do not exist in database
+          echo domain "$domain" does not exist in database
           exit 1
         fi
       fi
@@ -560,11 +569,15 @@ if ! [[ "$0" =~ ^bash ]]; then
       VALUES ('%domain_id%', '%email%', '%password%');
       INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) 
       VALUES (%domain_id%, '%email%', '%email%')"
+  update_email_query="
+      UPDATE %user_table%
+      SET %user_password_column% = '%password%'
+      WHERE %user_id_column% = '%user_id%'"
   list_emails_query="
       SELECT %user_table%.%user_email_column% 
       FROM %user_table% 
       WHERE %user_domain_id_column% = %domain_id%"
-  delete_user_query="
+  delete_email_query="
       DELETE FROM %user_table%
       WHERE %user_id_column% = %user_id%;
       DELETE FROM %alias_table%
