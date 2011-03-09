@@ -28,16 +28,17 @@
 #alias_domain_id_column=domain_id
 #alias_source_column=source
 #alias_destination_column=destination
-#domain_id_query= SELECT %domain_id_column% FROM %domain_table% WHERE %domain_name_column% = '%domain%'
-#add_domain_query= INSERT INTO %domain_table% (%domain_name_column%) VALUES ('%domain%')
-#show_domain_query= SELECT name FROM %virtual_domains%
-#list_domains_query= SELECT %domain_name_column% FROM %domain_table%
-#delete_domain_query= DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%
-#user_id_query= SELECT %user_id_column% FROM %user_table% WHERE %user_email_column% = '%email%'
-#show_email_query= SELECT %user_email_column% FROM %user_table% WHERE %user_email_column% = '%email%'
-#add_email_query= INSERT INTO %user_table% (%user_domain_id_column%, %user_email_column%, %user_password_column%) VALUES ('%domain_id%', '%email%', MD5('%password%')); INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%email%', '%email%')
-#list_emails_query= SELECT %user_table%.%user_email_column% FROM %user_table% WHERE %user_domain_id_column% = %domain_id%
-#delete_user_query= DELETE FROM %user_table% WHERE %user_id_column% = %user_id%; DELETE FROM %alias_table% WHERE %alias_source_column% = '%email%'
-#alias_id_query= SELECT %alias_id_column% FROM %alias_table% WHERE %alias_source_column% = '%source_email%' AND %alias_destination_column% = '%destination_email%'
-#add_alias_query= INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%source_email%', '%destination_email%')
-#delete_alias_query= DELETE FROM %alias_table% WHERE %alias_id_column% = %alias_id%
+#domain_id_query=SELECT %domain_id_column% FROM %domain_table% WHERE %domain_name_column% = '%domain%'
+#add_domain_query=INSERT INTO %domain_table% (%domain_name_column%) VALUES ('%domain%')
+#show_domain_query=SELECT name FROM %virtual_domains%
+#list_domains_query=SELECT %domain_name_column% FROM %domain_table%
+#delete_domain_query=DELETE FROM %domain_table% WHERE %domain_id_column% = %domain_id%
+#user_id_query=SELECT %user_id_column% FROM %user_table% WHERE %user_email_column% = '%email%'
+#show_email_query=SELECT %user_email_column% FROM %user_table% WHERE %user_email_column% = '%email%'
+#add_email_query=INSERT INTO %user_table% (%user_domain_id_column%, %user_email_column%, %user_password_column%) VALUES ('%domain_id%', '%email%', '%password%'); INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%email%', '%email%')
+#update_email_query=UPDATE %user_table% SET %user_password_column% = '%password%' WHERE %user_id_column% = '%user_id%'
+#list_emails_query=SELECT %user_table%.%user_email_column% FROM %user_table% WHERE %user_domain_id_column% = %domain_id%
+#delete_email_query=DELETE FROM %user_table% WHERE %user_id_column% = %user_id%; DELETE FROM %alias_table% WHERE %alias_source_column% = '%email%'
+#alias_id_query=SELECT %alias_id_column% FROM %alias_table% WHERE %alias_source_column% = '%source_email%' AND %alias_destination_column% = '%destination_email%'
+#add_alias_query=INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) VALUES (%domain_id%, '%source_email%', '%destination_email%')
+#delete_alias_query=DELETE FROM %alias_table% WHERE %alias_id_column% = %alias_id%

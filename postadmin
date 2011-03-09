@@ -628,8 +628,9 @@ if ! [[ "$0" =~ ^bash ]]; then
   case "$1" in
     'generate-config')
       for var in $config_vars; do
+        value=$(echo ${!var} | sed 's/^ //')
         echo -n '#'
-        echo $var=${!var}
+        echo $var=$value
       done
       exit 0
     ;;
