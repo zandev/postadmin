@@ -27,138 +27,31 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+###
+## script directory and name
+
+  pushd $(dirname $(readlink -f "$BASH_SOURCE")) > /dev/null
+  readonly script_dir="$PWD"
+  popd > /dev/null
+
+  readonly script_name=$(basename $0)
+
+##
+###
+
 
 ###
 ## Functions
-
+  
   ###
   ## Helpers
 
-    log_debug() {
-      if $debug; then
-        echo "$@" >> "$debug_file"
-      fi
-    }
-
-    log_verbose() {
-      if $verbose; then
-        echo "$@"
-      fi
-    }
-
-    show_help() {
-      echo "
-USAGE 
-    $script_name [action] [command] [options] args...
-WHERE
-    action is one  of: $actions
-    command is one of: $commands
-
-For more specific help, type:
-    $script_name [action] [command] --help
-"
-    }
-
-    show_usage() {
-      echo USAGE
-      while read line; do
-        echo -n '   '
-        echo "$line"
-      done < <(echo "$@")
-      exit 1
-    }
-
-    require_var() {
-      local var="$1"
-      if [ -z "${!var}" ]; then
-        log_debug "$var is not declared: "
-        echo "$2"
-        exit 1
-      fi
-    }
-
-    validate_regex() {
-      if ! [[ "$1" =~ $2 ]]; then 
-        echo "$3 '$1' does not match against the regular expression $2"
-        exit 1
-      fi
-    }
-
-    is_integer() {
-      if [ "$(echo "$1" | grep "^[[:digit:]]\+$")" ]; then
-        return 0
-      else
-        return 1
-      fi
-    }
-
-    random_string() {
-      if is_integer "$1"; then
-        cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "$1" | head -n 1
-      else
-        echo random_string: Invalid parameter '$1'
-        exit 1
-      fi
-    }
-
-    md5crypt_pwd() {
-      echo "$1" | openssl passwd -1 -stdin -salt "$2"
-    }
-
-    ask_help() {
-      [[ "$1" == '--help' ]]
-      return "$?"
-    } 
-
-    substitute_tokens() {
-      local string="$1"; shift
-      local vars="$@"
-      for var in $vars; do
-        local token=%"$var"%
-        local value="${!var}"
-        string=${string//"$token"/"$value"}
-      done
-      echo "$string"
-    }
-
-    domain_name() {
-      echo "$1" | awk -F@ '{print $NF}'
-    }
-
-    # Sql queries
-    db_query() {
-      if [ -z "$@" ]; then
-        echo "db_query: query is empty"
-        exit 1
-      fi
-      query=$(substitute_tokens "$@" "$config_vars")
-      local cmd=$(substitute_tokens "$sql_cmd" "$config_vars query")
-
-      log_debug "$cmd" >> "$debug_file"
-
-      eval $cmd
-    }
-  
-    domain_id() {
-      db_query "${domain_id_query//%domain%/$1};"
-    }
-
-    user_id() {
-      db_query "${user_id_query//%email%/$1};"
-    }
-
-    alias_id() {
-      source_email="$1"
-      destination_email="$2"
-      local alias_query=$(substitute_tokens "$alias_id_query" source_email destination_email)
-      echo $(db_query "$alias_query")
-    }
+    # sourcing libpostadmin.sh
+    source "$script_dir"/libpostadmin.sh
 
   ##
   ###
-  
-  
-  
+
   ###
   ## Commands
 
@@ -213,6 +106,7 @@ For more specific help, type:
           exit 1
         fi
         db_query "${delete_domain_query//%domain_id%/$domain_id}"
+        rm_dir "$vmail_home" "$domain"
       }
  
       if ! ask_help "$1"; then
@@ -321,6 +215,7 @@ For more specific help, type:
         fi
         local email_query=$(substitute_tokens "$delete_email_query" email user_id)
         db_query "$email_query"
+        rm_dir "$vmail_home/$domain" "$email"
       }
 
       update() {
@@ -452,52 +347,17 @@ For more specific help, type:
 ###
 
 
-
-###
-## Trick!! Wrapping rest of script in a conditional statement, for ease of sourcing
-#  TODO: Write a descent build script and split the source in distinct files, so it can inprove the testing process
-
-if ! [[ "$0" =~ ^bash ]]; then
-
-##
-###
-
-
-
 ###
 ## Variables
  
-  pushd $(dirname $(readlink -f "$BASH_SOURCE")) > /dev/null
-  script_dir="$PWD"
-  popd > /dev/null
-
-  readonly script_name=$(basename $0)
-
-  # Constants
+  # constants
   readonly actions="add|show|list|delete|update|suspend"
   readonly commands="domain|email|alias"
 
-  # load config file
-  config_dirs="
-    .
-    /etc
-    /usr/local/etc
-    /opt/etc"
-
-  postadmin_conf=  
-
-  for d in $config_dirs; do
-    for localdir in $d $d/postadmin; do
-      if [ -d "$localdir" ] && [ -f "$localdir/postadmin.conf" ]; then
-        readonly postadmin_conf="$localdir/postadmin.conf"
-        break
-      fi
-    done
-  done
 
   require_var "postadmin_conf" "No config file can be found in $config_dirs"
 
-
+  ##
   # Configuration variables
   
   ##CONFIG VARS -- Meta programming, do not delete
@@ -523,7 +383,7 @@ if ! [[ "$0" =~ ^bash ]]; then
   password_min_length=6
   
 
-  # Queries
+  # queries
   domain_table=virtual_domains
   domain_id_column=id
   domain_name_column=name
@@ -598,9 +458,27 @@ if ! [[ "$0" =~ ^bash ]]; then
 
   ##END CONFIG VARS
 
-  # sourcing configuration file
-  . "$postadmin_conf"
+  # sourcing configuration
+  config_dirs="
+    .
+    /etc
+    /usr/local/etc
+    /opt/etc"
 
+  postadmin_conf=  
+
+  for d in $config_dirs; do
+    for localdir in $d $d/postadmin; do
+      if [ -d "$localdir" ] && [ -f "$localdir/postadmin.conf" ]; then
+        readonly postadmin_conf="$localdir/postadmin.conf"
+        break
+      fi
+    done
+  done
+
+  source "$postadmin_conf"
+
+  # assigning readonly vars
   readonly config_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name\
                          | grep '##END CONFIG VARS' -B 100\
                          | egrep '^\s*[a-z0-9_]+='\
@@ -708,6 +586,4 @@ if ! [[ "$0" =~ ^bash ]]; then
 ##
 ###
 
-  exit 0
-
-fi
+exit 0
