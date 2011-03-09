@@ -1,0 +1,1 @@
+Add support for multiple password schemes (PLAIN,CRYPT,MD5-CRYPT,PLAIN-MD5)

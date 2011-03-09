@@ -84,6 +84,27 @@ For more specific help, type:
       fi
     }
 
+    is_integer() {
+      if [ "$(echo "$1" | grep "^[[:digit:]]\+$")" ]; then
+        return 0
+      else
+        return 1
+      fi
+    }
+
+    random_string() {
+      if is_integer "$1"; then
+        cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w "$1" | head -n 1
+      else
+        echo random_string: Invalid parameter '$1'
+        exit 1
+      fi
+    }
+
+    md5crypt_pwd() {
+      echo "$1" | openssl passwd -1 -stdin -salt "$2"
+    }
+
     ask_help() {
       [[ "$1" == '--help' ]]
       return "$?"
@@ -93,9 +114,9 @@ For more specific help, type:
       local string="$1"; shift
       local vars="$@"
       for var in $vars; do
-        local token=%$var%
-        local value=${!var}
-        string=${string//$token/$value}
+        local token=%"$var"%
+        local value="${!var}"
+        string=${string//"$token"/"$value"}
       done
       echo "$string"
     }
@@ -221,11 +242,33 @@ For more specific help, type:
           show_usage "$script_name add email [user@domain] [password]
                       Add email user@domain"
         fi
+        
+        encrypted=false
+        while getopts ":e:p:" opt; do
+          case $opt in
+          e)
+            password="$OPTARG"
+            encrypted=true
+          ;;
+          p)
+            password="$OPTARG"
+          ;;
+          \?)
+            echo "Invalid option: -$OPTARG"
+            exit 1
+          ;;
+          esac
+        done
 
-        if [ -z "$1" ];then
+        password=${password:-$1}
+
+        if [ -z "$password" ];then
           echo "No password provided"
-          show_usage "$script_name add email [user@domain] [password]
-                      Add email user@domain"
+          show_usage "$script_name add email [user@domain] -[p|e] [password]
+                      Add email user@domain
+                      Options:
+                      p: The password in plain text
+                      e: The password in encrypted form"
           exit 1
         fi
         
@@ -235,8 +278,13 @@ For more specific help, type:
           exit 1
         fi
 
-        validate_regex "$1" "$passwd_regex" 'password'
-        password="$1"
+        if ! $encrypted; then 
+          validate_regex "$password" "$passwd_regex" 'password'
+          salt=$(random_string 8)
+          password=$(md5crypt_pwd "$password" "$salt")
+        fi
+
+        password=$(echo $password | sed 's/\$/\\$/g')
 
         local email_query=$(substitute_tokens "$add_email_query" email domain_id password)
         db_query "$email_query"
@@ -395,6 +443,18 @@ For more specific help, type:
 ###
 
 
+
+###
+## Trick!! Wrapping rest of script in a conditional statement, for ease of sourcing
+#  TODO: Write a descent build script and split the source in distinct files, so it can inprove the testing process
+
+if ! [[ "$0" =~ ^bash ]]; then
+
+##
+###
+
+
+
 ###
 ## Variables
  
@@ -497,7 +557,7 @@ For more specific help, type:
       WHERE %user_email_column% = '%email%'"
   add_email_query="
       INSERT INTO %user_table% (%user_domain_id_column%,  %user_email_column%, %user_password_column%)
-      VALUES ('%domain_id%', '%email%', MD5('%password%'));
+      VALUES ('%domain_id%', '%email%', '%password%');
       INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) 
       VALUES (%domain_id%, '%email%', '%email%')"
   list_emails_query="
@@ -549,7 +609,8 @@ For more specific help, type:
 
 ###
 ## Parsing arguments
-  
+
+
   # generate config file command
   case "$1" in
     'generate-config')
@@ -633,4 +694,6 @@ For more specific help, type:
 ##
 ###
 
-exit 0
+  exit 0
+
+fi
