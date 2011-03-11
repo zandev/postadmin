@@ -27,7 +27,9 @@ in
 
 ### Add an email
 
-    postadmin add email me@mydomain.tld plain_Password
+    postadmin add email me@mydomain.tld -p plain_Password
+    | postadmin add email me@mydomain.tld myusername -p plain_Password
+    | postadmin add email me@mydomain.tld -e encrypted_Password (currently md5crypt, need to be improved)
 
 ### Add an alias
 
