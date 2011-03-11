@@ -11,8 +11,10 @@ CREATE TABLE `virtual_users` (
   `domain_id` int(11) NOT NULL,
   `password` varchar(32) NOT NULL,
   `email` varchar(100) NOT NULL,
+  `username` varchar(100) NOT NULL,
   PRIMARY KEY  (`id`),
   UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `username` (`username`),
   FOREIGN KEY (domain_id) REFERENCES virtual_domains(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

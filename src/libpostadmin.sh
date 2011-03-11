@@ -143,8 +143,12 @@ For more specific help, type:
       db_query "${domain_id_query//%domain%/$1};"
     }
 
-    user_id() {
+    user_id_by_email() {
       db_query "${user_id_query//%email%/$1};"
+    }
+
+    user_id_by_username() {
+      db_query "${user_id_by_username_query//%username%/$1};"
     }
 
     alias_id() {

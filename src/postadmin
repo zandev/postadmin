@@ -73,17 +73,11 @@
       show() {
         if ask_help $@; then
           show_usage "$script_name show domain [name]
-                      Show a domain entry
-                      If \`*\` is passed as argument \`name\`, list all domains in database"
+                      Show a domain entry"
         fi
         local result
-        if [ "$domain"='*' ]; then
-          result=$(db_query "$list_domains_query")
-          echo "$result"
-        else
-          result=$(db_query "${show_domain_query//%domain%/$domain}")
-          echo "$result"
-        fi
+        result=$(db_query "${show_domain_query//%domain%/$domain}")
+        echo "$result"
       }
 
       list() {
@@ -110,7 +104,11 @@
       }
  
       if ! ask_help "$1"; then
-
+        if [ -z "$1" ]; then
+          echo You must provide a domain
+          show_help
+          exit 1
+        fi
         # validate args
         validate_regex "$1" "$domain_regex" 'domain'
         domain="$1"; shift
@@ -150,15 +148,9 @@
           esac
         done
 
-        password=${password:-$1}
-
         if [ -z "$password" ];then
           echo "No password provided"
-          show_usage "$script_name add email [user@domain] -[p|e] [password]
-                      Add email user@domain
-                      Options:
-                      p: The password in plain text
-                      e: The password in encrypted form"
+          show_help
           exit 1
         fi
         
@@ -172,22 +164,37 @@
         password=$(echo $password | sed 's/\$/\\$/g')
       }
 
-
       add() {
         if ask_help $@; then
-          show_usage "$script_name add email [user@domain] [password]
-                      Add email user@domain"
+          show_usage "$script_name add email [user@domain] ?[username] [option] [password]
+                      Add email user@domain with username [username] and password [password]
+                      Options:
+                      p: The password in plain text
+                      e: The password in encrypted form"
         fi
 
-        user_id=$(user_id "$email")
+        user_id=$(user_id_by_email "$email")
         if [ ! -z "$user_id" ]; then
           echo email "$email" already exist in database
           exit 1
         fi
 
-        set_password "$@"
+        if [[ "$1" =~ ^[^-] ]]; then
+          username="$1"; shift
+        else
+          username="$email"
+        fi
 
-        local email_query=$(substitute_tokens "$add_email_query" email domain_id password)
+        validate_regex "$username" "$username_regex" 'username'
+        username_id=$(user_id_by_username "$username")
+        if [ ! -z "$username_id" ]; then
+          echo username "$username" already exist in database
+          exit 1
+        fi
+
+        set_password "$@"
+        
+        local email_query=$(substitute_tokens "$add_email_query" email username domain_id password)
         db_query "$email_query"
       }
 
@@ -208,7 +215,7 @@
           show_usage "$script_name delete email [user@domain]
                       Delete email user@domain"
         fi
-        user_id=$(user_id "$email")
+        user_id=$(user_id_by_email "$email")
         if [ -z "$user_id" ]; then
           echo email "$email" does not exist in database
           exit 1
@@ -228,7 +235,7 @@
           exit 1
         fi
 
-        user_id=$(user_id "$email")
+        user_id=$(user_id_by_email "$email")
         if [ -z "$user_id" ]; then
           echo email "$email" does not exist in database
           exit 1
@@ -354,9 +361,6 @@
   readonly actions="add|show|list|delete|update|suspend"
   readonly commands="domain|email|alias"
 
-
-  require_var "postadmin_conf" "No config file can be found in $config_dirs"
-
   ##
   # Configuration variables
   
@@ -372,11 +376,12 @@
 
   local_part_min_length=2
   local_part_max_length=23
-  local_part_regex="^([0-9a-z\.-]{%local_part_min_length%,%local_part_max_length%})$"
+  local_part_regex='[0-9a-z\.@_-]{%local_part_min_length%,%local_part_max_length%}'
   passwd_min_length=6
-  passwd_regex=".{%passwd_min_length%,}"
+  passwd_regex='.{%passwd_min_length%,}'
   domain_regex='[a-z0-9.-]+\.[a-z]{2,4}'
-  email_regex="[a-z0-9._%+-]+@%domain_regex%"
+  email_regex='(%local_part_regex%)@%domain_regex%'
+  username_regex='%local_part_regex%(@%domain_regex%)?'
 
   user_name_min_length=1
   user_name_max_length=23
@@ -390,6 +395,7 @@
   user_table=virtual_users
   user_id_column=id
   user_email_column=email
+  user_username_column=username
   user_domain_id_column=domain_id
   user_password_column=password
   alias_table=virtual_aliases
@@ -407,7 +413,7 @@
       INSERT INTO %domain_table% (%domain_name_column%) 
       VALUES ('%domain%')"
   show_domain_query="
-      SELECT name FROM %virtual_domains%"
+      SELECT %domain_name_column% FROM %domain_table% WHERE %domain_name_column% = '%domain%'"
   list_domains_query="
       SELECT %domain_name_column% 
       FROM %domain_table%"
@@ -420,6 +426,10 @@
       SELECT %user_id_column% 
       FROM %user_table% 
       WHERE %user_email_column% = '%email%'"
+  user_id_by_username_query="
+      SELECT %user_id_column% 
+      FROM %user_table% 
+      WHERE %user_username_column% = '%username%'"
   show_email_query="
       SELECT %user_email_column%
       FROM %user_table%
@@ -460,7 +470,7 @@
 
   # sourcing configuration
   config_dirs="
-    .
+    $script_dir
     /etc
     /usr/local/etc
     /opt/etc"
@@ -476,6 +486,7 @@
     done
   done
 
+  require_var "postadmin_conf" "No config file can be found in $config_dirs"
   source "$postadmin_conf"
 
   # assigning readonly vars
