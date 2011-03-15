@@ -222,7 +222,8 @@
         fi
         local email_query=$(substitute_tokens "$delete_email_query" email user_id)
         db_query "$email_query"
-        rm_dir "$vmail_home/$domain" "$email"
+        domain=$(domain_name "$email")
+        rm_dir "$vmail_home/$domain" "${email%@$domain}"
       }
 
       update() {
