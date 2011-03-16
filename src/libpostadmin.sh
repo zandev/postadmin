@@ -125,6 +125,11 @@ For more specific help, type:
       echo "$1" | awk -F@ '{print $NF}'
     }
 
+    localpart() {
+      local domain=$(domain_name "$1")
+      echo "${1%@$domain}"
+    }
+
     # Sql queries
     db_query() {
       if [ -z "$@" ]; then
