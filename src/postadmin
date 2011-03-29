@@ -86,6 +86,10 @@
                       List emails for this domain"
         fi
         local domain_id=$(domain_id "$domain")
+        if [ -z "$domain_id" ]; then
+          echo domain "$domain" does not exist in database
+          exit 1
+        fi
         local emails_result=$(db_query "${list_emails_query//%domain_id%/$domain_id}")
         local aliases_result=$(db_query "${list_aliases_query//%domain_id%/$domain_id}")
         echo "$emails_result"
