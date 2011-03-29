@@ -92,7 +92,9 @@
         fi
         local emails_result=$(db_query "${list_emails_query//%domain_id%/$domain_id}")
         local aliases_result=$(db_query "${list_aliases_query//%domain_id%/$domain_id}")
+        echo "-- emails"
         echo "$emails_result"  | column -t
+        echo "-- aliases"
         echo "$aliases_result" | awk '{print $1" -> "$2}' | column -t
       }
 
