@@ -86,8 +86,10 @@
                       List emails for this domain"
         fi
         local domain_id=$(domain_id "$domain")
-        local result=$(db_query "${list_emails_query//%domain_id%/$domain_id}")
-        echo "$result"
+        local emails_result=$(db_query "${list_emails_query//%domain_id%/$domain_id}")
+        local aliases_result=$(db_query "${list_aliases_query//%domain_id%/$domain_id}")
+        echo "$emails_result"
+        echo "$aliases_result" | awk '{print $1" -> "$2}' | column -t
       }
 
       delete() {
@@ -463,6 +465,10 @@
   add_alias_query="
       INSERT INTO %alias_table% (%alias_domain_id_column%, %alias_source_column%, %alias_destination_column%) 
       VALUES (%domain_id%, '%source_email%', '%destination_email%')"
+  list_aliases_query="
+      SELECT %alias_source_column%, %alias_destination_column%
+      FROM %alias_table%
+      WHERE %alias_domain_id_column% = %domain_id%"
   delete_alias_query="
       DELETE FROM %alias_table% 
       WHERE %alias_id_column% = %alias_id%"
