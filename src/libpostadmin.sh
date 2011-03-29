@@ -43,7 +43,7 @@ For more specific help, type:
     }
 
     validate_regex() {
-      if ! [[ "$1" =~ $2 ]]; then 
+      if ! [[ "$1" =~ ^$2$ ]]; then 
         echo "$3 '$1' does not match against the regular expression $2"
         exit 1
       fi

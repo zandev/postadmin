@@ -327,10 +327,10 @@
       if ! ask_help "$1"; then
 
         # validate args
-        validate_regex "$1" "$email_regex" 'source email'
+        validate_regex "$1" "$alias_regex" 'source email'
         source_email="$1"; shift
 
-        validate_regex "$1" "$email_regex" 'destination email'
+        validate_regex "$1" "$alias_regex" 'destination email'
         destination_email="$1"; shift
         
         # retrieve domain id
@@ -389,8 +389,9 @@
   passwd_min_length=6
   passwd_regex='.{%passwd_min_length%,}'
   domain_regex='[a-z0-9.-]+\.[a-z]{2,4}'
-  email_regex='(%local_part_regex%)@%domain_regex%'
+  email_regex='%local_part_regex%@%domain_regex%'
   username_regex='%local_part_regex%(@%domain_regex%)?'
+  alias_regex='(%local_part_regex%@)?%domain_regex%'
 
   user_name_min_length=1
   user_name_max_length=23
