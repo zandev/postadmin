@@ -59,8 +59,9 @@
       
       list() {
         if ask_help $@; then
-          show_usage "$script_name list domains [regex]
-                      List domains matching [regex]"
+          show_usage "$script_name list domains [matching close]
+                      List domains matching [matching close]
+                      The syntax of the matching close depends on the underlying SQL backend and query"
         fi
 
         db_query "${find_domains_query//%domain%/$domain}" | tail -n +0
@@ -570,7 +571,11 @@
       for var in $config_vars; do
         value=$(echo ${!var} | sed 's/^ //')
         echo -n '#'
-        echo $var=$value
+        if [[ "$var" =~ _query$ ]]; then
+          echo $var=\"$value\" # wrap sql queries in double quotes
+        else
+          echo $var=$value
+        fi
       done
       exit 0
     ;;
