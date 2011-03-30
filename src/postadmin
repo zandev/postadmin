@@ -55,6 +55,35 @@
   ###
   ## Commands
 
+    domains() {
+      
+      list() {
+        if ask_help $@; then
+          show_usage "$script_name list domains [regex]
+                      List domains matching [regex]"
+        fi
+
+        db_query "${find_domains_query//%domain%/$domain}" | tail -n +0
+      }
+
+      if ! ask_help "$1"; then
+        domain="$1"; shift
+      fi
+
+      # Main
+      case "$action" in
+        list)
+          "$action" "$@"
+        ;;
+        *)
+          echo Unexpected action "$action"
+          show_help
+          exit 1
+        ;;
+      esac
+
+    }
+
     domain() {
 
       add() {
@@ -368,7 +397,7 @@
  
   # constants
   readonly actions="add|show|list|delete|update|suspend"
-  readonly commands="domain|email|alias"
+  readonly commands="domains|domain|email|alias"
 
   ##
   # Configuration variables
@@ -413,7 +442,13 @@
   alias_domain_id_column=domain_id
   alias_source_column=source
   alias_destination_column=destination
-  
+ 
+  # domains
+  find_domains_query="
+      SELECT %domain_name_column% 
+      FROM %domain_table% 
+      WHERE %domain_name_column% LIKE '%domain%'"
+
   # domain
   domain_id_query="
       SELECT %domain_id_column% 
@@ -423,7 +458,9 @@
       INSERT INTO %domain_table% (%domain_name_column%) 
       VALUES ('%domain%')"
   show_domain_query="
-      SELECT %domain_name_column% FROM %domain_table% WHERE %domain_name_column% = '%domain%'"
+      SELECT %domain_name_column% 
+      FROM %domain_table% 
+      WHERE %domain_name_column% = '%domain%'"
   list_domains_query="
       SELECT %domain_name_column% 
       FROM %domain_table%"
