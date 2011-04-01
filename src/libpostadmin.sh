@@ -11,6 +11,23 @@
       fi
     }
 
+    extract_config_vars() {
+      awk '/##BEGIN CONFIG VARS/{f=1}f{print}/##END CONFIG VARS/{exit}' "$script_dir/$script_name"\
+    | egrep '^\s*[a-z0-9_]+='\
+    | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/'
+    }
+
+    print_vars() {
+      for var in $@; do
+        value=$(echo ${!var} | sed 's/^ //')
+        if [[ "$var" =~ _query$ ]]; then
+          echo $var=\"$value\" # wrap sql queries in double quotes
+        else
+          echo $var=$value
+        fi
+      done
+    }
+
     show_help() {
       echo "
 USAGE 
@@ -141,7 +158,7 @@ For more specific help, type:
 
       log_debug "$cmd" >> "$debug_file"
 
-      eval $cmd
+      $cmd
     }
   
     domain_id() {

@@ -388,6 +388,29 @@
         ;;
       esac
     }
+
+    config() {
+
+      _show() {
+        print_vars "$config_vars"
+      }
+
+      _generate() {
+        echo "$default_config" | sed 's/^/#/'
+      }
+
+      # Main
+      case "$action" in
+        generate|show)
+          "_$action" "$@"
+        ;;
+        *)
+          echo Unexpected action "$action"
+          show_help
+          exit 1
+        ;;
+      esac
+    }
     
   ##
   ###
@@ -400,13 +423,13 @@
 ## Variables
  
   # constants
-  readonly actions="add|show|list|delete|find|update|suspend"
-  readonly commands="domains|domain|email|alias"
+  readonly actions="add|show|list|delete|find|update|suspend|generate"
+  readonly commands="domains|domain|email|alias|config"
 
   ##
   # Configuration variables
   
-  ##CONFIG VARS -- Meta programming, do not delete
+  ##BEGIN CONFIG VARS -- Meta programming, do not delete
   vmail_home=/var/vmail
   debug_file="$HOME/postadmin.debug.log"
 
@@ -534,6 +557,9 @@
 
   ##END CONFIG VARS
 
+  # default vars
+  readonly default_config=$(print_vars `extract_config_vars`)
+  
   # sourcing configuration
   config_dirs="
     $script_dir
@@ -555,11 +581,8 @@
   require_var "postadmin_conf" "No config file can be found in $config_dirs"
   source "$postadmin_conf"
 
-  # assigning readonly vars
-  readonly config_vars=$(grep '##CONFIG VARS' -A 200 $script_dir/$script_name\
-                         | grep '##END CONFIG VARS' -B 200\
-                         | egrep '^\s*[a-z0-9_]+='\
-                         | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
+  # effective vars
+  readonly config_vars=$(extract_config_vars)
   
   for var in $config_vars; do
     if [[ "$var" =~ _regex ]]; then
@@ -581,21 +604,9 @@
 
   # generate config file command
   case "$1" in
-    'generate-config')
-      for var in $config_vars; do
-        value=$(echo ${!var} | sed 's/^ //')
-        echo -n '#'
-        if [[ "$var" =~ _query$ ]]; then
-          echo $var=\"$value\" # wrap sql queries in double quotes
-        else
-          echo $var=$value
-        fi
-      done
+    '--help') 
+      show_help; 
       exit 0
-    ;;
-      '--help') 
-        show_help; 
-        exit 0
     ;;
   esac
 
