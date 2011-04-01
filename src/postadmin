@@ -55,39 +55,9 @@
   ###
   ## Commands
 
-    domains() {
-      
-      list() {
-        if ask_help $@; then
-          show_usage "$script_name list domains [matching close]
-                      List domains matching [matching close]
-                      The syntax of the matching close depends on the underlying SQL backend and query"
-        fi
-
-        db_query "${find_domains_query//%domain%/$domain}" | tail -n +0
-      }
-
-      if ! ask_help "$1"; then
-        domain="$1"; shift
-      fi
-
-      # Main
-      case "$action" in
-        list)
-          "$action" "$@"
-        ;;
-        *)
-          echo Unexpected action "$action"
-          show_help
-          exit 1
-        ;;
-      esac
-
-    }
-
     domain() {
 
-      add() {
+      _add() {
         if ask_help $@; then
           show_usage "$script_name add domain [name]
                       Add a new domain"
@@ -100,7 +70,7 @@
         db_query "${add_domain_query//%domain%/$domain}"
       }
 
-      show() {
+      _show() {
         if ask_help $@; then
           show_usage "$script_name show domain [name]
                       Show a domain entry"
@@ -110,7 +80,7 @@
         echo "$result"
       }
 
-      list() {
+      _list() {
         if ask_help $@; then
           show_usage "$script_name list domain [name]
                       List emails for this domain"
@@ -128,7 +98,7 @@
         echo "$aliases_result" | awk '{print $1" -> "$2}' | column -t
       }
 
-      delete() {
+      _delete() {
         if ask_help $@; then
           show_usage "$script_name delete domain [name]"
         fi
@@ -140,6 +110,16 @@
         db_query "${delete_domain_query//%domain_id%/$domain_id}"
         rm_dir "$vmail_home" "$domain"
       }
+
+      _find() {
+        if ask_help $@; then
+          show_usage "$script_name list domains [matching close]
+                      List domains matching [matching close]
+                      The syntax of the matching close depends on the underlying SQL backend and query"
+        fi
+        
+        db_query "${find_domains_query//%domain%/$domain}" | tail -n +0
+      }
  
       if ! ask_help "$1"; then
         if [ -z "$1" ]; then
@@ -148,14 +128,14 @@
           exit 1
         fi
         # validate args
-        validate_regex "$1" "$domain_regex" 'domain'
+        [ "$action" != 'find' ] && validate_regex "$1" "$domain_regex" 'domain'
         domain="$1"; shift
       fi
 
       # Main
       case "$action" in
-        add|show|list|delete)
-          "$action" "$@"
+        add|show|list|delete|find)
+          "_$action" "$@"
         ;;
         *)
           echo Unexpected action "$action"
@@ -202,7 +182,7 @@
         password=$(echo $password | sed 's/\$/\\$/g')
       }
 
-      add() {
+      _add() {
         if ask_help $@; then
           show_usage "$script_name add email [user@domain] ?[username] [option] [password]
                       Add email user@domain with username [username] and password [password]
@@ -236,7 +216,7 @@
         db_query "$email_query"
       }
 
-      show() {
+      _show() {
         if ask_help $@; then
           show_usage "$script_name show email [user@domain]
                       Show email user@domain"
@@ -248,7 +228,7 @@
         echo "$result"
       }
 
-      delete() {
+      _delete() {
         if ask_help $@; then
           show_usage "$script_name delete email [user@domain]
                       Delete email user@domain"
@@ -264,7 +244,7 @@
         rm_dir "$vmail_home/$domain" "${email%@$domain}"
       }
 
-      update() {
+      _update() {
         if ask_help $@; then
           show_usage "$script_name update email [user@domain] -[p|e] [password]
                       Update email user@domain
@@ -305,7 +285,7 @@
       # Main
       case "$action" in
         add|show|update|delete)
-          "$action" "$@"
+          "_$action" "$@"
         ;;
         *)
           echo Unexpected action "$action"
@@ -317,7 +297,7 @@
 
     alias() {
 
-      add() {
+      _add() {
         if ask_help $@; then
           show_usage "$script_name add alias [source_email] [destination_email]
                       Add an alias from [source_email] to [destination_email]"
@@ -334,11 +314,11 @@
         db_query "$query"
       }
 
-      show() {
-        echo "show"
+      _show() {
+        echo "Not implemented"
       }
 
-      delete() {
+      _delete() {
         if ask_help $@; then
           show_usage "$script_name delete alias [source_email] [destination_email]
                       Delete alias from [source_email] to [destination_email]"
@@ -376,7 +356,7 @@
       # Main
       case "$action" in
         add|show|delete)
-          "$action" "$@"
+          "_$action" "$@"
         ;;
         *)
           echo Unexpected action "$action"
@@ -397,7 +377,7 @@
 ## Variables
  
   # constants
-  readonly actions="add|show|list|delete|update|suspend"
+  readonly actions="add|show|list|delete|find|update|suspend"
   readonly commands="domains|domain|email|alias"
 
   ##
