@@ -556,8 +556,8 @@
   source "$postadmin_conf"
 
   # assigning readonly vars
-  readonly config_vars=$(grep '##CONFIG VARS' -A 100 $script_dir/$script_name\
-                         | grep '##END CONFIG VARS' -B 100\
+  readonly config_vars=$(grep '##CONFIG VARS' -A 200 $script_dir/$script_name\
+                         | grep '##END CONFIG VARS' -B 200\
                          | egrep '^\s*[a-z0-9_]+='\
                          | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/')
   
