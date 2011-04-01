@@ -113,12 +113,12 @@
 
       _find() {
         if ask_help $@; then
-          show_usage "$script_name list domains [matching close]
-                      List domains matching [matching close]
+          show_usage "$script_name find domain [matching close]
+                      Find domains matching [matching close]
                       The syntax of the matching close depends on the underlying SQL backend and query"
         fi
         
-        db_query "${find_domains_query//%domain%/$domain}" | tail -n +0
+        db_query "${find_domain_query//%domain%/$domain}" | tail -n +0
       }
  
       if ! ask_help "$1"; then
@@ -266,11 +266,22 @@
         db_query "$email_query"
       }
 
-      if ! ask_help "$1"; then
+      _find() {
+        if ask_help $@; then
+          show_usage "$script_name find email [matching close]
+                      Find emails matching [matching close]
+                      The syntax of the matching close depends on the underlying SQL backend and query"
+        fi
+
+        db_query "${find_email_query//%email%/$email}" | tail -n +0
+      }
+
+      email="$1"
+      if ! ask_help "$1" && [ "$action" != 'find' ]; then
 
         # validate args
-        validate_regex "$1" "$email_regex" 'email'
-        email="$1"; shift
+        validate_regex "$email" "$email_regex" 'email'
+        shift
 
         # retrieve domain id
         domain=$(domain_name "$email")
@@ -284,7 +295,7 @@
  
       # Main
       case "$action" in
-        add|show|update|delete)
+        add|show|update|delete|find)
           "_$action" "$@"
         ;;
         *)
@@ -424,11 +435,6 @@
   alias_source_column=source
   alias_destination_column=destination
  
-  # domains
-  find_domains_query="
-      SELECT %domain_name_column% 
-      FROM %domain_table% 
-      WHERE %domain_name_column% LIKE '%domain%'"
 
   # domain
   domain_id_query="
@@ -448,6 +454,10 @@
   delete_domain_query="
       DELETE FROM %domain_table% 
       WHERE %domain_id_column% = %domain_id%"
+  find_domain_query="
+      SELECT %domain_name_column% 
+      FROM %domain_table% 
+      WHERE %domain_name_column% LIKE '%domain%'"
 
   # email
   user_id_query="
@@ -472,7 +482,7 @@
       SET %user_password_column% = '%password%'
       WHERE %user_id_column% = '%user_id%'"
   list_emails_query="
-      SELECT %user_table%.%user_email_column% 
+      SELECT %user_email_column% 
       FROM %user_table% 
       WHERE %user_domain_id_column% = %domain_id%"
   delete_email_query="
@@ -480,6 +490,11 @@
       WHERE %user_id_column% = %user_id%;
       DELETE FROM %alias_table%
       WHERE %alias_source_column% = '%email%'"
+  find_email_query="
+      SELECT %user_email_column%
+      FROM %user_table%
+      WHERE %user_email_column%
+      LIKE '%email%'"
 
   # alias
   alias_id_query="
