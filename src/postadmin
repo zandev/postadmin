@@ -345,7 +345,19 @@
         db_query "${delete_alias_query//%alias_id%/$alias_id}"
       }
 
-      if ! ask_help "$1"; then
+      _find() {
+        if ask_help $@; then
+          show_usage "$script_name find alias [matching close]
+                      Find aliases matching [matching close]
+                      The syntax of the matching close depends on the underlying SQL backend and query"
+        fi
+
+        db_query "${find_alias_query//%alias%/$alias}" | tail -n +0 | awk '{print $1 " -> " $2}' | column -t
+      }
+
+      alias="$1" # used by _find
+
+      if ! ask_help "$1" && [ "$action" != 'find' ]; then
 
         # validate args
         validate_regex "$1" "$alias_regex" 'source email'
@@ -366,7 +378,7 @@
 
       # Main
       case "$action" in
-        add|show|delete)
+        add|show|delete|find)
           "_$action" "$@"
         ;;
         *)
@@ -512,6 +524,13 @@
   delete_alias_query="
       DELETE FROM %alias_table% 
       WHERE %alias_id_column% = %alias_id%"
+  find_alias_query="
+      SELECT %alias_source_column%, %alias_destination_column%
+      FROM %alias_table%
+      WHERE %alias_destination_column%
+      LIKE '%alias%'
+      OR %alias_source_column%
+      LIKE '%alias%'"
 
   ##END CONFIG VARS
 
