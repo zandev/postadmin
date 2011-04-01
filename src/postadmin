@@ -424,7 +424,7 @@
  
   # constants
   readonly actions="add|show|list|delete|find|update|suspend|generate"
-  readonly commands="domains|domain|email|alias|config"
+  readonly commands="domain|email|alias|config"
 
   ##
   # Configuration variables

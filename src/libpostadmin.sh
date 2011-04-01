@@ -158,7 +158,7 @@ For more specific help, type:
 
       log_debug "$cmd" >> "$debug_file"
 
-      $cmd
+      eval $cmd
     }
   
     domain_id() {
