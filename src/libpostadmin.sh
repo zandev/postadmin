@@ -13,7 +13,7 @@
 
     extract_config_vars() {
       awk '/##BEGIN CONFIG VARS/{f=1}f{print}/##END CONFIG VARS/{exit}' "$script_dir/$script_name"\
-    | egrep '^\s*[a-z0-9_]+='\
+    | egrep '^ *[a-z0-9_]+='\
     | sed 's/^\s*\([a-z0-9_]\+\)=.*$/\1/'
     }
 
